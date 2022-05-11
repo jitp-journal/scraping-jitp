@@ -1,0 +1,143 @@
+# import necessary packages for webscraping.
+
+from bs4 import BeautifulSoup
+from urllib import request
+from dateutil.parser import parse
+import time
+import random
+import os
+import re
+import csv
+
+def is_date(string, fuzzy=False):
+    """
+    Return whether the string can be interpreted as a date.
+
+    :param string: str, string to check for date
+    :param fuzzy: bool, ignore unknown tokens in string if True
+    """
+    try: 
+        parse(string, fuzzy=fuzzy)
+        return True
+
+    except ValueError:
+        return False
+
+def get_issue_link(link):
+    html = request.urlopen(link).read()
+    soup = BeautifulSoup(html, 'html5lib')
+    issue_toc = soup.select('div.textcontent')[0]
+    raw_links = issue_toc.find_all('a')
+    actual_issue_links = []
+    for raw_link in raw_links:
+        if raw_link.text.startswith('Issue') or raw_link['href'].startswith('https://jitp.commons.gc.cuny.edu/wp-content/plugins/peters-custom-anti-spam-image/custom_anti_spam.php'):
+            pass
+        elif raw_link.has_attr("title") and raw_link['title'] == "Share this article":
+            pass
+        elif raw_link['href'].endswith('#respond') or raw_link['href'].endswith('#comments') or '#comment' in raw_link['href']:
+            pass
+        elif raw_link.text in ['Attribution-NonCommercial-ShareAlike 4.0 International', 'Previous:', 'Next:', 'Learn how your comment data is processed', 'table of contents', 'Introduction /', 'JITP Issue 8 is now live! | Laura Wildemann Kane','JITP Issue 9 is now live! | Laura Wildemann Kane','Happenings – VREPS','Re-viewing Digital Technologies and Art History – DAHS','Wandering Volunteer Park /', '\n', 'Special Feature: Behind the Seams']:
+            pass
+        elif raw_link['href'] in ['https://creativecommons.org/licenses/by-nc-sa/4.0/', 'http://teacherstech.net/?p=10236']:
+            pass
+        elif is_date(raw_link.text):
+            pass
+        elif raw_link.text in [text.replace(u'\xa0', u'') for link, text in actual_issue_links]:
+            pass
+        else:
+            actual_issue_links.append((raw_link['href'], raw_link.text.replace(u'\xa0', u'')))
+    
+    return actual_issue_links
+
+def scrape_contents_of_an_article(article_link):
+    html = request.urlopen(article_link).read()
+    soup = BeautifulSoup(html, 'html5lib')
+    # swap this line and the following one to grab only the article and not the comments
+    # issue_contents = soup.select('article')[0]
+    issue_contents = soup.select('div#main')[0]
+    # add 'li.a[href$="#comments' to get rid of comments
+    list_of_junk = ['div.tagslist','div.iw-social-share','a[href^="https://jitp.commons.gc.cuny.edu/category/issues"]', 'section#post-nav', 'div.comment-respond','p.akismet_comment_form_privacy_notice', 'p[style="display: none !important;"]', 'section.comments p.buttons', 'section.comments img', 'img.avatar']
+    for junk in list_of_junk:
+        print(junk)
+        try:
+            issue_contents.select(junk)[0].decompose()
+        except:
+            print('could not match ' + junk)
+        try:
+            for item in issue_contents.select(junk):
+                item.decompose()
+        except:
+            print('not a thing we can loop over')
+    # search for image tags and replace direct links
+    for img in issue_contents.find_all('img'):
+        img['src'] = re.sub(
+        r'https:\/\/jitp\.commons\.gc\.cuny\.edu\/files\/[0-9]+\/[0-9]+|src="http:\/\/jitp\.commons\.gc\.cuny\.edu\/files\/[0-9]+\/[0-9]+',"images", img['src'])
+
+    for sup_tag in issue_contents.find_all("sup", {"class": "footnote"}):
+        del sup_tag.findChild('a')['onclick']
+    return issue_contents
+
+def clean_issue(title, issue_contents):
+    metadata_title = "<head>\n<meta name=\"dc.title\" content=\"" + title + "\">\n</head>"
+    clean_contents = metadata_title + str(issue_contents)
+    # re.sub(
+    #     r'img src="https:\/\/jitp\.commons\.gc\.cuny\.edu\/files\/[0-9]+\/[0-9]+|src="http:\/\/jitp\.commons\.gc\.cuny\.edu\/files\/[0-9]+\/[0-9]+',"<img src=\"images", clean_contents)
+    
+    return clean_contents
+
+def scrape_issue(issue_title,issue_links):
+    if not os.path.exists(issue_title):
+        os.mkdir(issue_title)
+    for link,title in issue_links:
+        contents = scrape_contents_of_an_article(link)
+        clean_contents = clean_issue(title, contents)
+        with open(os.path.join(issue_title, title.replace('/', ' ') +'.html'), 'w') as fout:
+            fout.write(clean_contents)
+    
+
+def get_main_toc_links():
+    # store the url we want to work with in the variable 'url'
+
+    url = 'https://jitp.commons.gc.cuny.edu/issues/'
+    html = request.urlopen(url).read()
+
+    # turn it into soup
+    soup = BeautifulSoup(html, 'html5lib')
+    # grab just the toc from the page
+    toc = soup.select('div.textcontent')[0]
+    # grab all the anchor tags from the toc but throw away the ones about cc lincensing
+    raw_links = toc.find_all('a')[1:-2]
+    actual_links = [(raw_link['href'], raw_link.text.replace(u'\xa0', u' ').replace('Table of Contents: ','')) for raw_link in raw_links]
+    return actual_links
+
+def get_all_issue_links(main_toc_links):
+    links_for_individual_issues = {}
+    # MODIFY HERE TO REDUCE NUMBER OF ISSUES SCRAPED
+    for issue_toc_link, issue_title in main_toc_links:
+        max_sleep = 5
+        time.sleep(random.random() * max_sleep)
+        print('=====')
+        print('Scraping ' + issue_title)
+        links_for_individual_issues[issue_title] = get_issue_link(issue_toc_link)
+    
+    return links_for_individual_issues
+
+def main():
+    # get all the main toc links
+    main_toc_links = get_main_toc_links()
+    main_toc_links.reverse()
+
+    # use the main toc links to get each issue link
+    links_for_individual_issues = get_all_issue_links(main_toc_links)
+    print(links_for_individual_issues)
+    with open('issue_links.csv', 'w') as csvfile:
+        spamwriter = csv.writer(csvfile)
+        for key in links_for_individual_issues.keys():
+            spamwriter.writerow([key])
+            for link in links_for_individual_issues[key]:
+                spamwriter.writerow(['',link[1], link[0]])
+    # for issue_title,issue_links in links_for_individual_issues.items():
+    #     scrape_issue(issue_title, issue_links)
+
+if __name__ == "__main__":
+    main()

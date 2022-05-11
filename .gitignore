@@ -1,0 +1,5 @@
+Issue*
+.DS_Store
+*.zip
+test.html
+__pycache__
