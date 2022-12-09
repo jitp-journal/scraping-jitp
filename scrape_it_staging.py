@@ -56,7 +56,7 @@ def scrape_contents_of_an_article(article_link):
     # issue_contents = soup.select('article')[0]
     issue_contents = soup.select('div#main')[0]
     # add 'li.a[href$="#comments' to get rid of comments
-    list_of_junk = ['div.tagslist','div.iw-social-share','a[href^="https://jitp.commons.gc.cuny.edu/category/issues"]', 'section#post-nav', 'div.comment-respond','p.akismet_comment_form_privacy_notice', 'p[style="display: none !important;"]', 'section.comments p.buttons', 'section.comments img', 'img.avatar', 'div.featimg.animated', 'div.cat']
+    list_of_junk = ['div.tagslist','div.iw-social-share','a[href^="https://jitp.commons.gc.cuny.edu/category/issues"]', 'section#post-nav', 'div.comment-respond','p.akismet_comment_form_privacy_notice', 'p[style="display: none !important;"]', 'section.comments p.buttons', 'section.comments img', 'img.avatar', 'div.featimg.animated', 'div.cat','div.comments', 'hr', 'section.comments']
     for junk in list_of_junk:
         # print(junk)
         try:
