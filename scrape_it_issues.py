@@ -119,6 +119,7 @@ def scrape_issue(issue_title,issue_links):
     if not os.path.exists(issue_title):
         os.mkdir(issue_title)
     print('Processing ' + issue_title)
+    print(issue_links)
     for link,title in issue_links:
         print(title)
         contents = scrape_contents_of_an_article(link)

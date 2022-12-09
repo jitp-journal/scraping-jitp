@@ -3,3 +3,6 @@ Issue*
 *.zip
 test.html
 __pycache__
+short*
+teaching*
+tool*

@@ -120,6 +120,7 @@ def scrape_issue(issue_title,issue_links):
     if not os.path.exists(issue_title):
         os.mkdir(issue_title)
     print('Processing ' + issue_title)
+    print(issue_links)
     for link,title in issue_links:
         print(title)
         contents = scrape_contents_of_an_article(link)
@@ -163,11 +164,15 @@ def main():
 
 
     # use the main toc links to get each issue link
-    links_for_individual_short_forms= {}
-    with open('links.csv', newline='') as csvfile:
-        spamreader = csv.DictReader(csvfile, delimiter=' ', quotechar='|')
+    links_for_individual_short_forms= {'tool tips':[], 'teaching fails':[],'reviews':[], 'blueprints':[], 'assignments':[], 'behind the seams':[]}
+    with open('short-form-links.tsv', newline='') as csvfile:
+        spamreader = csv.DictReader(csvfile, delimiter='\t', quotechar='|')
         for row in spamreader:
-            links_for_individual_short_forms[row[short_form_type]] = links_for_individual_short_forms[row[short_form_type]] + row[link]
+            print(row)
+            print(links_for_individual_short_forms)
+            print('======')
+            links_for_individual_short_forms[row['short_form_type']].append((row['link'],row['title']))
+
 
     for issue_title,issue_links in links_for_individual_short_forms.items():
         scrape_issue(issue_title, issue_links)
