@@ -30,13 +30,13 @@ def get_issue_link(link):
     raw_links = issue_toc.find_all('a')
     actual_issue_links = []
     for raw_link in raw_links:
-        if raw_link.text.startswith('Issue') or raw_link['href'].startswith('https://jitp.commons.gc.cuny.edu/wp-content/plugins/peters-custom-anti-spam-image/custom_anti_spam.php'):
+        if raw_link.text.startswith('Issue') or raw_link['href'].startswith('https://jitp.commons.gc.cuny.edu/wp-content/plugins/peters-custom-anti-spam-image/custom_anti_spam.php') or raw_link['href'].startswith('https://jitp.commons.gc.cuny.edu/a-conversation-on-international-collaboration-in-digital-scholarship/'):
             pass
         elif raw_link.has_attr("title") and raw_link['title'] == "Share this article":
             pass
         elif raw_link['href'].endswith('#respond') or raw_link['href'].endswith('#comments') or '#comment' in raw_link['href']:
             pass
-        elif raw_link.text in ['Attribution-NonCommercial-ShareAlike 4.0 International', 'Previous:', 'Next:', 'Learn how your comment data is processed', 'table of contents', 'Introduction /', 'JITP Issue 8 is now live! | Laura Wildemann Kane','JITP Issue 9 is now live! | Laura Wildemann Kane','Happenings – VREPS','Re-viewing Digital Technologies and Art History – DAHS','Wandering Volunteer Park /', '\n', 'Special Feature: Behind the Seams']:
+        elif raw_link.text in ['Attribution-NonCommercial-ShareAlike 4.0 International', 'Previous:', 'Next:', 'Learn how your comment data is processed', 'table of contents', 'Introduction /', 'JITP Issue 8 is now live! | Laura Wildemann Kane','JITP Issue 9 is now live! | Laura Wildemann Kane','Happenings – VREPS','Re-viewing Digital Technologies and Art History – DAHS','Wandering Volunteer Park /', '\n', 'Special Feature: Behind the Seams', 'Summer Supplement: A Conversation on International Collaboration in Digital Scholarship', 'Manifold']:
             pass
         elif raw_link['href'] in ['https://creativecommons.org/licenses/by-nc-sa/4.0/', 'http://teacherstech.net/?p=10236']:
             pass
@@ -69,7 +69,54 @@ def scrape_contents_of_an_article(article_link):
                 item.decompose()
         except:
             print('not a thing we can loop over')
-    # get rid of comment links and reformat date to not be a line item
+    # massaging of author bios
+    try:
+        for quote in issue_contents.find_all('blockquote'):
+            try:
+                if quote.h3.text == "About the Authors" or quote.h3.text == "About the Author":
+                    quote.name = 'div'
+                    quote['id']='authorbio'
+                try:
+                    quote.h3.name = 'h2'
+                except:
+                    pass
+            except:
+                pass
+
+            try:
+                if quote.h2.text == "About the Authors" or quote.h2.text == "About the Author":
+                    try:
+                        quote.name = 'div'
+                        quote['id']='authorbio'
+                    except:
+                        pass
+            except:
+                pass
+    except:
+        pass
+
+    #turn all address tags into p
+    try:
+        for address in issue_contents.find_all('address'):
+            address.name = 'p'
+    except:
+        pass
+
+    # remove bold from h2
+    try:
+        for abstract in issue_contents.find_all('h2'):
+            if address.b:
+                address.b.unwrap()
+    except:
+        pass
+    # make all h3 abstracts into h2
+    try:
+        for h3 in issue_contents.find_all('h3'):
+            if h3.text == "Abstract":
+                h3.name = 'h2'
+    except:
+        pass
+     # get rid of comment links and reformat date to not be a line item
     try:
         pass
         replace_text = issue_contents.select('ul.textinfo')[0].find_all('li')[1].text.strip()
@@ -85,7 +132,8 @@ def scrape_contents_of_an_article(article_link):
 
     for img in issue_contents.find_all('img'):
         img['src'] = re.sub(
-        r'https:\/\/jitp\.commons\.gc\.cuny\.edu\/files\/[0-9]+\/[0-9]+|src="http:\/\/jitp\.commons\.gc\.cuny\.edu\/files\/[0-9]+\/[0-9]+',"images", img['src'])
+        r'https:\/\/jitp\.commons\.gc\.cuny\.edu\/files\/[0-9]+\/[0-9]+|src="http:\/`\/jitp\.commons\.gc\.cuny\.edu\/files\/[0-9]+\/[0-9]+|https:\/\/jitp\.commons\.gc\.cuny\.edu\/files\/EasyRotatorStorage\/user\-content\/erc\_62\_1406481274\/content\/assets',"images", img['src'])
+        del img['srcset']
 
     for sup_tag in issue_contents.find_all("sup", {"class": "footnote"}):
         del sup_tag.findChild('a')['onclick']
@@ -99,6 +147,17 @@ def scrape_contents_of_an_article(article_link):
         # if no h2 with byline - just pass
         # but issue right now is that sometimes there is no byline class but there is an h2. you could say "turn the first h2 into a p tag, but you won't know universally that is the case"
         print('Fail: ' + article_link)
+        pass
+
+    try:
+        for thing in issue_contents.select('a[href^="https://jitp.commons.gc.cuny.edu/files"]'):
+            thing.replaceWithChildren()
+    except:
+        pass
+    try:
+        for thing in issue_contents.select('a[href^="http://jitp.commons.gc.cuny.edu/files"]'):
+            thing.replaceWithChildren()
+    except:
         pass
     # strip brackets from notes
     for hit in issue_contents.find_all('a', {'class': 'ftn'}):
@@ -119,7 +178,6 @@ def scrape_issue(issue_title,issue_links):
     if not os.path.exists(issue_title):
         os.mkdir(issue_title)
     print('Processing ' + issue_title)
-    print(issue_links)
     for link,title in issue_links:
         print(title)
         contents = scrape_contents_of_an_article(link)
@@ -147,11 +205,14 @@ def get_all_issue_links(main_toc_links):
     links_for_individual_issues = {}
     # MODIFY HERE TO REDUCE NUMBER OF ISSUES SCRAPED
     for issue_toc_link, issue_title in main_toc_links:
-        max_sleep = 5
-        time.sleep(random.random() * max_sleep)
-        print('=====')
-        print('Scraping ' + issue_title)
-        links_for_individual_issues[issue_title] = get_issue_link(issue_toc_link)
+        if issue_title in ['Manifold', 'Issue Twenty-One', 'Summer Supplement: A Conversation on International Collaboration in Digital Scholarship']:
+            pass
+        else:
+            max_sleep = 5
+            time.sleep(random.random() * max_sleep)
+            print('=====')
+            print('Scraping ' + issue_title)
+            links_for_individual_issues[issue_title] = get_issue_link(issue_toc_link)
     
     return links_for_individual_issues
 

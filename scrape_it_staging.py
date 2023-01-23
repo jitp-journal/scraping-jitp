@@ -173,7 +173,8 @@ def main():
         ('https://jitpstaging.commons.gc.cuny.edu/five-faculty-and-library-curation-personas-to-aid-oer-discovery-solutions/','Five Faculty and Library Curation Personas to Aid OER Discovery Solutions'),
         ('https://jitpstaging.commons.gc.cuny.edu/implementing-oer-at-laguardia-community-college-three-case-studies/','Implementing OER at LaGuardia Community College: Three Case Studies'),
         ('https://jitpstaging.commons.gc.cuny.edu/creating-active-and-meaningful-learning-through-a-renewable-assignment-a-case-study-in-a-human-growth-development-psychology-course/','Creating Active and Meaningful Learning through a Renewable Assignment: A Case Study in a Human Growth Development Psychology Course'),
-        ('https://jitpstaging.commons.gc.cuny.edu/building-a-community-of-voices-in-professional-writing/','Building a Community of Voices in Professional Writing')   
+        ('https://jitpstaging.commons.gc.cuny.edu/building-a-community-of-voices-in-professional-writing/','Building a Community of Voices in Professional Writing'),
+        ('https://jitpstaging.commons.gc.cuny.edu/introduction-to-issue-twenty-one-open-educational-resources/','Introduction to Issue Twenty-One: Open Educational Resources')   
     ]
     }
     for issue_title,issue_links in links_for_individual_issues.items():
